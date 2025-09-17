@@ -3,10 +3,8 @@ import "./page.css";
 
 export default function Home() {
   return (
-    <main>
-      <div>
-        <SnippetContainer />
-      </div>
+    <main className="page-main">
+      <SnippetContainer />
     </main>
   );
 }
