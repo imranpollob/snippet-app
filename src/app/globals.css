@@ -1,25 +1,25 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
-  color-scheme: dark;
-  --page-background: radial-gradient(circle at top, rgba(59, 130, 246, 0.25), transparent 55%),
-    radial-gradient(circle at 20% 60%, rgba(45, 212, 191, 0.2), transparent 40%),
-    radial-gradient(circle at 80% 40%, rgba(244, 114, 182, 0.2), transparent 40%),
-    #050b17;
-  --surface-glass: rgba(15, 23, 42, 0.65);
-  --surface-card: rgba(15, 23, 42, 0.85);
-  --surface-muted: rgba(148, 163, 184, 0.08);
-  --stroke-soft: rgba(148, 163, 184, 0.3);
-  --text-primary: #e2e8f0;
-  --text-secondary: rgba(226, 232, 240, 0.72);
-  --accent: #60a5fa;
-  --accent-strong: #2563eb;
-  --positive: #34d399;
-  --danger: #f87171;
-  --shadow-soft: 0 30px 60px rgba(15, 23, 42, 0.45);
+  color-scheme: light;
+  --page-background: radial-gradient(circle at top, rgba(147, 197, 253, 0.35), transparent 55%),
+    radial-gradient(circle at 20% 60%, rgba(125, 211, 252, 0.25), transparent 45%),
+    radial-gradient(circle at 75% 30%, rgba(252, 211, 77, 0.2), transparent 45%),
+    #f8fafc;
+  --surface-glass: rgba(255, 255, 255, 0.75);
+  --surface-card: rgba(255, 255, 255, 0.92);
+  --surface-muted: rgba(15, 23, 42, 0.05);
+  --stroke-soft: rgba(148, 163, 184, 0.35);
+  --text-primary: #0f172a;
+  --text-secondary: rgba(15, 23, 42, 0.68);
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --positive: #16a34a;
+  --danger: #dc2626;
+  --shadow-soft: 0 28px 44px rgba(15, 23, 42, 0.1);
   --radius-lg: 24px;
   --radius-md: 16px;
-  --radius-sm: 10px;
+  --radius-sm: 12px;
 }
 
 *,
@@ -69,8 +69,8 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg, rgba(96, 165, 250, 0.15), transparent 40%),
-    linear-gradient(300deg, rgba(244, 114, 182, 0.1), transparent 55%);
+  background: linear-gradient(120deg, rgba(37, 99, 235, 0.12), transparent 45%),
+    linear-gradient(260deg, rgba(2, 132, 199, 0.1), transparent 55%);
   z-index: -1;
 }
 
@@ -93,7 +93,7 @@ h4 {
 
 a:not([class]) {
   text-decoration-skip-ink: auto;
-  color: currentColor;
+  color: inherit;
 }
 
 img,
@@ -120,7 +120,7 @@ textarea:not([rows]) {
 }
 
 ::placeholder {
-  color: rgba(226, 232, 240, 0.45);
+  color: rgba(15, 23, 42, 0.45);
 }
 
 ::-webkit-scrollbar {
@@ -129,7 +129,7 @@ textarea:not([rows]) {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(15, 23, 42, 0.08);
   border-radius: 999px;
 }
 
@@ -139,5 +139,5 @@ textarea:not([rows]) {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.8);
+  background: rgba(148, 163, 184, 0.75);
 }

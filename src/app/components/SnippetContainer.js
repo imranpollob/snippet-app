@@ -28,8 +28,10 @@ const SnippetContainer = () => {
   const [currentSnippet, setCurrentSnippet] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState(null);
+  const [autosaveStatus, setAutosaveStatus] = useState("idle");
 
   const typingTimeoutRef = useRef(null);
+  const autosaveFeedbackTimerRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
@@ -42,6 +44,7 @@ const SnippetContainer = () => {
         setIsModalOpen(false);
         setCurrentSnippet(null);
         setSearchQuery("");
+        setAutosaveStatus("idle");
       }
     });
 
@@ -100,8 +103,10 @@ const SnippetContainer = () => {
           snippet.id === snippetId ? { ...snippet, ...updatedData } : snippet
         )
       );
+      return true;
     } catch (error) {
       console.error("Error updating snippet:", error);
+      return false;
     }
   };
 
@@ -121,11 +126,18 @@ const SnippetContainer = () => {
   const openModal = (snippet) => {
     setCurrentSnippet(snippet);
     setIsModalOpen(true);
+    setAutosaveStatus("idle");
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setCurrentSnippet(null);
+    setAutosaveStatus("idle");
+
+    if (autosaveFeedbackTimerRef.current) {
+      clearTimeout(autosaveFeedbackTimerRef.current);
+      autosaveFeedbackTimerRef.current = null;
+    }
   };
 
   const handleUpdateSnippet = (snippetId, updates) => {
@@ -145,12 +157,33 @@ const SnippetContainer = () => {
       return;
     }
 
+    setAutosaveStatus("pending");
+
+    if (autosaveFeedbackTimerRef.current) {
+      clearTimeout(autosaveFeedbackTimerRef.current);
+      autosaveFeedbackTimerRef.current = null;
+    }
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    typingTimeoutRef.current = setTimeout(() => {
-      updateSnippet(snippetId, payload);
+    typingTimeoutRef.current = setTimeout(async () => {
+      setAutosaveStatus("saving");
+      const success = await updateSnippet(snippetId, payload);
+
+      if (success) {
+        setAutosaveStatus("saved");
+        if (autosaveFeedbackTimerRef.current) {
+          clearTimeout(autosaveFeedbackTimerRef.current);
+        }
+        autosaveFeedbackTimerRef.current = setTimeout(() => {
+          setAutosaveStatus("idle");
+          autosaveFeedbackTimerRef.current = null;
+        }, 2500);
+      } else {
+        setAutosaveStatus("error");
+      }
     }, AUTOSAVE_DELAY);
   };
 
@@ -158,6 +191,9 @@ const SnippetContainer = () => {
     return () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
+      }
+      if (autosaveFeedbackTimerRef.current) {
+        clearTimeout(autosaveFeedbackTimerRef.current);
       }
     };
   }, []);
@@ -187,75 +223,99 @@ const SnippetContainer = () => {
     : isSaving
     ? "Saving your snippet..."
     : null;
+  const autosaveFeedback =
+    autosaveStatus === "pending"
+      ? "Changes pending..."
+      : autosaveStatus === "saving"
+      ? "Saving changes..."
+      : autosaveStatus === "saved"
+      ? "All changes saved"
+      : autosaveStatus === "error"
+      ? "Auto-save failed. Please try again."
+      : "";
 
   return (
     <div className="page-shell">
-      <header className="hero-card">
-        <div className="hero-head">
-          <div className="brand">
-            <div className="brand-mark">&lt;/&gt;</div>
-            <div className="brand-copy">
-              <span className="hero-eyebrow">Snippet Studio</span>
-              <span className="brand-title">Build once. Reuse forever.</span>
+      {!user ? (
+        <header className="hero-card">
+          <div className="hero-head">
+            <div className="brand">
+              <div className="brand-mark">&lt;/&gt;</div>
+              <div className="brand-copy">
+                <span className="hero-eyebrow">Snippet Studio</span>
+                <span className="brand-title">Build once. Reuse forever.</span>
+              </div>
             </div>
+            <GoogleAuthButton />
           </div>
-          <GoogleAuthButton />
-        </div>
 
-        <div className="hero-copy">
-          <h1 className="hero-title">Your personal snippet command center</h1>
-          <p className="hero-description">
-            Collect your favorite code, configuration, and workflow snippets in a
-            beautifully organized space that is always within reach.
-          </p>
-        </div>
-
-        <div className="hero-actions">
-          <label className="search-shell" htmlFor="snippet-search">
-            <svg
-              className="search-icon"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M15.5 14h-.79l-.28-.27a6.47 6.47 0 0 0 1.57-4.23A6.5 6.5 0 1 0 9.5 16a6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"
-                fill="currentColor"
-              />
-            </svg>
-            <input
-              id="snippet-search"
-              className="search-input"
-              type="search"
-              placeholder={
-                user
-                  ? "Search snippets by title or content"
-                  : "Sign in to search your library"
-              }
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              disabled={!user}
-              aria-disabled={!user}
-            />
-          </label>
-
-          <div className="hero-meta" aria-live="polite">
-            <span className="metric-pill">
-              <strong>{totalSnippets}</strong> total
-            </span>
-            <span className="metric-pill">
-              <strong>{visibleSnippets}</strong> showing
-            </span>
-            {hasSearch ? (
-              <span className="metric-pill">Filter: {searchQuery}</span>
-            ) : null}
+          <div className="hero-copy">
+            <h1 className="hero-title">Your personal snippet command center</h1>
+            <p className="hero-description">
+              Collect your favorite code, configuration, and workflow snippets in a
+              beautifully organized space that is always within reach.
+            </p>
           </div>
-        </div>
-      </header>
+
+          <div className="hero-actions">
+            <ul className="hero-highlights">
+              <li>Save code, shell commands, and reusable notes</li>
+              <li>Search instantly across your private library</li>
+              <li>Edit safely with autosave and version-friendly updates</li>
+            </ul>
+          </div>
+        </header>
+      ) : (
+        <section className="workspace-header" aria-label="Snippet workspace controls">
+          <div className="workspace-header-top">
+            <div className="workspace-title">
+              <h1>Your snippet workspace</h1>
+              <p>Keep frequently used fragments organized and searchable.</p>
+            </div>
+            <GoogleAuthButton />
+          </div>
+        </section>
+      )}
 
       {user ? (
         <>
           <SnippetForm addSnippet={addSnippet} isSaving={isSaving} />
+
+          <section className="search-panel" aria-label="Search your snippets">
+            <label className="search-shell" htmlFor="snippet-search">
+              <svg
+                className="search-icon"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path
+                  d="M15.5 14h-.79l-.28-.27a6.47 6.47 0 0 0 1.57-4.23A6.5 6.5 0 1 0 9.5 16a6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"
+                  fill="currentColor"
+                />
+              </svg>
+              <input
+                id="snippet-search"
+                type="search"
+                placeholder="Search snippets by title or content"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                autoComplete="off"
+              />
+            </label>
+
+            <div className="search-meta" aria-live="polite">
+              <span className="metric-pill">
+                <strong>{totalSnippets}</strong> total
+              </span>
+              <span className="metric-pill">
+                <strong>{visibleSnippets}</strong> showing
+              </span>
+              {hasSearch ? (
+                <span className="metric-pill">Filter: {searchQuery}</span>
+              ) : null}
+            </div>
+          </section>
 
           <section className="cards-section" aria-live="polite">
             <div className="cards-header">
@@ -341,6 +401,16 @@ const SnippetContainer = () => {
                 }
               />
             </div>
+            {autosaveFeedback ? (
+              <div
+                className="modal-editor-status"
+                role="status"
+                aria-live="polite"
+                data-state={autosaveStatus}
+              >
+                {autosaveFeedback}
+              </div>
+            ) : null}
             <div className="modal-editor-actions">
               <button
                 className="danger-button"

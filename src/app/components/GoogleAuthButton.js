@@ -52,12 +52,32 @@ const GoogleAuthButton = () => {
     return "Creator";
   }, [user]);
 
-  const avatarSrc = user?.photoURL || "/robot-avatar.jpg";
+  const avatarSrc = useMemo(() => {
+    if (!user?.photoURL) {
+      return "/robot-avatar.jpg";
+    }
+
+    try {
+      const url = new URL(user.photoURL);
+      if (url.hostname.endsWith("googleusercontent.com")) {
+        url.searchParams.set("sz", "128");
+      }
+      return url.toString();
+    } catch (error) {
+      console.warn("Unable to parse avatar URL", error);
+      return user.photoURL;
+    }
+  }, [user?.photoURL]);
 
   return (
     <div className="auth-chip" role="group" aria-label="Authentication status">
       <div className="auth-avatar">
-        <img src={avatarSrc} alt={user ? `${displayName}'s avatar` : "Guest avatar"} />
+        <img
+          src={avatarSrc}
+          alt={user ? `${displayName}'s avatar` : "Guest avatar"}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+        />
       </div>
       <div className="auth-meta">
         <span className="auth-name">{displayName}</span>
