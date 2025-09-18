@@ -2,6 +2,8 @@
 
 Snippet Studio is a modern snippet manager built with Next.js and Firebase. Capture reusable code, shell commands, and notes in a personal workspace with autosave, rich search, and Google authentication.
 
+![Screenshot](./Screenshot.jpeg)
+
 ## Features
 
 - **Google sign-in** – authenticate securely with your Google account
