@@ -28,7 +28,8 @@ const SnippetContainer = () => {
   const [currentSnippet, setCurrentSnippet] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState(null);
-  const [autosaveStatus, setAutosaveStatus] = useState("idle");
+  const [autosaveStatus, setAutosaveStatus] = useState("ready");
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
 
   const typingTimeoutRef = useRef(null);
   const autosaveFeedbackTimerRef = useRef(null);
@@ -44,7 +45,7 @@ const SnippetContainer = () => {
         setIsModalOpen(false);
         setCurrentSnippet(null);
         setSearchQuery("");
-        setAutosaveStatus("idle");
+        setAutosaveStatus("ready");
       }
     });
 
@@ -110,6 +111,25 @@ const SnippetContainer = () => {
     }
   };
 
+  const openModal = (snippet) => {
+    setCurrentSnippet(snippet);
+    setIsModalOpen(true);
+    setAutosaveStatus("ready");
+    setIsDeleteConfirming(false);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setCurrentSnippet(null);
+    setAutosaveStatus("ready");
+    setIsDeleteConfirming(false);
+
+    if (autosaveFeedbackTimerRef.current) {
+      clearTimeout(autosaveFeedbackTimerRef.current);
+      autosaveFeedbackTimerRef.current = null;
+    }
+  };
+
   const deleteSnippet = async (snippetId) => {
     const snippetRef = doc(db, "snippets", snippetId);
     try {
@@ -120,23 +140,8 @@ const SnippetContainer = () => {
       closeModal();
     } catch (error) {
       console.error("Error deleting snippet:", error);
-    }
-  };
-
-  const openModal = (snippet) => {
-    setCurrentSnippet(snippet);
-    setIsModalOpen(true);
-    setAutosaveStatus("idle");
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setCurrentSnippet(null);
-    setAutosaveStatus("idle");
-
-    if (autosaveFeedbackTimerRef.current) {
-      clearTimeout(autosaveFeedbackTimerRef.current);
-      autosaveFeedbackTimerRef.current = null;
+    } finally {
+      setIsDeleteConfirming(false);
     }
   };
 
@@ -178,7 +183,7 @@ const SnippetContainer = () => {
           clearTimeout(autosaveFeedbackTimerRef.current);
         }
         autosaveFeedbackTimerRef.current = setTimeout(() => {
-          setAutosaveStatus("idle");
+          setAutosaveStatus("ready");
           autosaveFeedbackTimerRef.current = null;
         }, 2500);
       } else {
@@ -223,16 +228,16 @@ const SnippetContainer = () => {
     : isSaving
     ? "Saving your snippet..."
     : null;
+  const autosaveFeedbackMap = {
+    ready: "Ready to edit",
+    pending: "Changes pending...",
+    saving: "Saving changes...",
+    saved: "All changes saved",
+    error: "Auto-save failed. Please try again.",
+  };
+
   const autosaveFeedback =
-    autosaveStatus === "pending"
-      ? "Changes pending..."
-      : autosaveStatus === "saving"
-      ? "Saving changes..."
-      : autosaveStatus === "saved"
-      ? "All changes saved"
-      : autosaveStatus === "error"
-      ? "Auto-save failed. Please try again."
-      : "";
+    autosaveFeedbackMap[autosaveStatus] ?? autosaveFeedbackMap.ready;
 
   return (
     <div className="page-shell">
@@ -243,17 +248,15 @@ const SnippetContainer = () => {
               <div className="brand-mark">&lt;/&gt;</div>
               <div className="brand-copy">
                 <span className="hero-eyebrow">Snippet Studio</span>
-                <span className="brand-title">Build once. Reuse forever.</span>
+                <span className="brand-title">Save Everything</span>
               </div>
             </div>
             <GoogleAuthButton />
           </div>
 
           <div className="hero-copy">
-            <h1 className="hero-title">Your personal snippet command center</h1>
             <p className="hero-description">
-              Collect your favorite code, configuration, and workflow snippets in a
-              beautifully organized space that is always within reach.
+              Store your favorite code, configuration, and workflow snippets in a beautifully organized space that is always within reach.
             </p>
           </div>
 
@@ -269,7 +272,7 @@ const SnippetContainer = () => {
         <section className="workspace-header" aria-label="Snippet workspace controls">
           <div className="workspace-header-top">
             <div className="workspace-title">
-              <h1>Your snippet workspace</h1>
+              <h1>Snippet Workspace</h1>
               <p>Keep frequently used fragments organized and searchable.</p>
             </div>
             <GoogleAuthButton />
@@ -401,24 +404,48 @@ const SnippetContainer = () => {
                 }
               />
             </div>
-            {autosaveFeedback ? (
-              <div
-                className="modal-editor-status"
-                role="status"
-                aria-live="polite"
-                data-state={autosaveStatus}
-              >
-                {autosaveFeedback}
-              </div>
-            ) : null}
+            <div
+              className="modal-editor-status"
+              role="status"
+              aria-live="polite"
+              data-state={autosaveStatus}
+            >
+              {autosaveFeedback}
+            </div>
             <div className="modal-editor-actions">
-              <button
-                className="danger-button"
-                type="button"
-                onClick={() => deleteSnippet(currentSnippet.id)}
-              >
-                Delete snippet
-              </button>
+              <div className="modal-editor-delete">
+                {isDeleteConfirming ? (
+                  <>
+                    <p className="modal-editor-delete-message">
+                      Delete this snippet permanently?
+                    </p>
+                    <div className="modal-editor-delete-controls">
+                      <button
+                        className="ghost-button"
+                        type="button"
+                        onClick={() => setIsDeleteConfirming(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="danger-button"
+                        type="button"
+                        onClick={() => deleteSnippet(currentSnippet.id)}
+                      >
+                        Confirm delete
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    className="danger-button"
+                    type="button"
+                    onClick={() => setIsDeleteConfirming(true)}
+                  >
+                    Delete snippet
+                  </button>
+                )}
+              </div>
               <button className="ghost-button" type="button" onClick={closeModal}>
                 Close
               </button>
