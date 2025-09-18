@@ -71,6 +71,7 @@ const SnippetForm = ({ addSnippet, isSaving = false }) => {
             placeholder="A short label for your snippet"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
+            onKeyDown={handleShortcut}
             autoFocus
             autoComplete="off"
           />
