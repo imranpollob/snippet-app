@@ -61,7 +61,7 @@ const SnippetsComponent = ({ snippets, onCardClick, searchQuery }) => {
             <span className="snippet-card-cta" aria-hidden="true"></span>
           </header>
           <pre className="snippet-card-body">
-            {highlightMatch(truncateText(snippet.data || "", 420), searchQuery)}
+            {highlightMatch(truncateText(snippet.data || ""), searchQuery)}
           </pre>
         </article>
       ))}
